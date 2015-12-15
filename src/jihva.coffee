@@ -1,3 +1,4 @@
+# --- Lexer ---
 Lexer = require 'lex'
 
 STRING_RE = /"(\\[\s\S]|[^"\\])+"/   # "hello\nworld"
@@ -52,6 +53,37 @@ class Parser
         break
     return @tokens
 
-p = new Parser('print ("hello world")')
-toks = p.parse()
-console.log(toks)
+
+# --- Repl ---
+readline = require 'readline'
+
+class Repl
+  constructor: (txt) ->
+    undefined
+  
+  run: () ->
+    @rl = readline.createInterface({
+      'input': process.stdin,
+      'output': process.stdout,
+    })
+    
+    console.log("Jihva v1. Type 'quit' to quit")
+    @step()
+  
+  eval: () ->
+    p = new Parser('print ("hello world")')
+    toks = p.parse()
+    return JSON.stringify(toks)
+    
+  step: () ->
+    @rl.question "> ", (answer) =>
+      if answer == 'quit'
+        @rl.close()
+        return
+      
+      output = @eval(answer)
+      console.log(output)
+      @step() # run again
+
+r = new Repl
+r.run()
