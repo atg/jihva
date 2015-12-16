@@ -16,6 +16,13 @@ makeToken = (kind, val) ->
     "val": val
   }
 
+makeCounters = () ->
+  return {
+    '(': 0
+    '[': 0
+    '{': 0
+  }
+
 class Tokenizer
   constructor: (txt) ->
     @source = txt
@@ -52,6 +59,32 @@ class Tokenizer
       if not x?
         break
     return @tokens
+  
+  tokenizeLines: (counters) ->
+    # return a list of lines, taking care to balance brackets
+    lines = [[]]
+    toks = @tokenize()
+    
+    isDone = () ->
+      return counters['('] == 0 and counters['['] == 0 and counters['{'] == 0
+    
+    adjust = (tok, left, right) ->
+      if tok == left
+        counters[left] += 1
+      if tok == right
+        counters[left] -= 1
+    
+    for tok in toks
+      adjust(tok.val, '(', ')')
+      adjust(tok.val, '[', ']')
+      adjust(tok.val, '{', '}')
+      if tok.kind == 'newline'
+        if isDone()
+          lines.push([])
+          return
+      lines[lines.length-1].push(tok)
+    return [lines, isDone()]
+
 
 
 # --- Parser ---
@@ -77,22 +110,29 @@ class Repl
     })
     
     console.log("Jihva v1. Type 'quit' to quit")
-    @step()
+    @counters = makeCounters()
+    @step(true)
   
   eval: (txt) ->
     t = new Tokenizer(txt)
-    toks = t.tokenize()
-    return JSON.stringify(toks)
+    # toks = t.tokenize()
+    [lines, isDone] = t.tokenizeLines(@counters)
+    lineOutputs = (JSON.stringify(line) for line in lines)
+    return [lineOutputs.join('\n'), isDone]
     
-  step: () ->
-    @rl.question "> ", (answer) =>
+  step: (isDone) ->
+    prompt = " > "
+    if not isDone
+      prompt = '.. '
+    
+    @rl.question prompt, (answer) =>
       if answer == 'quit'
         @rl.close()
         return
       
-      output = @eval(answer)
+      [output, isDone] = @eval(answer)
       console.log(output)
-      @step() # run again
+      @step(isDone) # run again
 
 r = new Repl
 r.run()
