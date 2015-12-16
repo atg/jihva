@@ -16,7 +16,7 @@ makeToken = (kind, val) ->
     "val": val
   }
 
-class Parser
+class Tokenizer
   constructor: (txt) ->
     @source = txt
     @tokens = []
@@ -45,13 +45,22 @@ class Parser
     @lexer.addRule WHITESPACE_RE, (tok) =>
       undefined
   
-  parse: () ->
+  tokenize: () ->
     @lexer.input = @source;
     while true
       x = @lexer.lex()
       if not x?
         break
     return @tokens
+
+
+# --- Parser ---
+class Parser
+  constructor: (toks) ->
+    @toks = toks
+  
+  parse: () ->
+    undefined
 
 
 # --- Repl ---
@@ -70,9 +79,9 @@ class Repl
     console.log("Jihva v1. Type 'quit' to quit")
     @step()
   
-  eval: () ->
-    p = new Parser('print ("hello world")')
-    toks = p.parse()
+  eval: (txt) ->
+    t = new Tokenizer(txt)
+    toks = t.tokenize()
     return JSON.stringify(toks)
     
   step: () ->
